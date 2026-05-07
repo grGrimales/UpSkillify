@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { getServerSession } from "next-auth";
@@ -171,7 +172,7 @@ export default async function TopicPage({
         
         <div className="p-8 md:p-12 prose prose-zinc dark:prose-invert max-w-none">
           <ReactMarkdown 
-            remarkPlugins={[remarkGfm]}
+            remarkPlugins={[remarkGfm, remarkBreaks]}
             components={{
               code({ inline, className, children, ...props }: any) {
                 const match = /language-(\w+)/.exec(className || "");

@@ -3,9 +3,9 @@ import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Language } from "@prisma/client";
-import { createModule } from "@/lib/actions/module";
 import ModuleListEditor from "@/components/admin/ModuleListEditor";
 import CourseStatusToggle from "@/components/admin/CourseStatusToggle";
+import CreateModuleForm from "@/components/admin/CreateModuleForm";
 import Link from "next/link";
 
 async function getCourseWithContent(id: string) {
@@ -86,49 +86,10 @@ export default async function AdminCourseDetailPage({ params }: { params: Promis
         {/* Right: Creation Forms */}
         <div className="lg:col-span-4">
           <div className="sticky top-24 space-y-8">
-            <section className="bg-zinc-950 text-white rounded-[2.5rem] p-8 shadow-2xl shadow-zinc-200/50 dark:shadow-none">
-              <h2 className="text-2xl font-black mb-6">Nuevo Módulo</h2>
-              <form action={async (formData) => { await createModule(formData); }} className="space-y-4">
-                <input type="hidden" name="courseId" value={course.id} />
-                
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-zinc-500 mb-1">Orden de aparición</label>
-                  <input 
-                    name="order" 
-                    type="number" 
-                    required 
-                    defaultValue={course.modules.length + 1} 
-                    className="w-full px-5 py-3 bg-white/10 border border-white/10 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-zinc-500 mb-1">Título (ES)</label>
-                    <input name="title_es" required className="w-full px-5 py-3 bg-white/10 border border-white/10 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Ej: Fundamentos de React" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-zinc-500 mb-1">Título (EN)</label>
-                    <input name="title_en" required className="w-full px-5 py-3 bg-white/10 border border-white/10 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Ej: React Fundamentals" />
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-zinc-500 mb-1">Descripción (ES)</label>
-                    <textarea name="description_es" rows={2} className="w-full px-5 py-3 bg-white/10 border border-white/10 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-zinc-500 mb-1">Descripción (EN)</label>
-                    <textarea name="description_en" rows={2} className="w-full px-5 py-3 bg-white/10 border border-white/10 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
-                  </div>
-                </div>
-
-                <button type="submit" className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all mt-4 shadow-lg shadow-blue-500/20">
-                  Crear Módulo
-                </button>
-              </form>
-            </section>
+            <CreateModuleForm 
+              courseId={course.id} 
+              nextOrder={course.modules.length + 1} 
+            />
           </div>
         </div>
       </div>

@@ -88,7 +88,7 @@ export default async function AdminCourseDetailPage({ params }: { params: Promis
           <div className="sticky top-24 space-y-8">
             <section className="bg-zinc-950 text-white rounded-[2.5rem] p-8 shadow-2xl shadow-zinc-200/50 dark:shadow-none">
               <h2 className="text-2xl font-black mb-6">Nuevo Módulo</h2>
-              <form action={createModule} className="space-y-4">
+              <form action={async (formData) => { await createModule(formData); }} className="space-y-4">
                 <input type="hidden" name="courseId" value={course.id} />
                 
                 <div>

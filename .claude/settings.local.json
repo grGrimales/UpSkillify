@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prisma *)",
+      "Bash(node -e \"require\\('dotenv/config'\\); console.log\\('URL:', process.env.DATABASE_URL ? 'set' : 'missing'\\)\")",
+      "Bash(node -e ' *)"
+    ]
+  }
+}

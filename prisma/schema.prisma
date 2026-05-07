@@ -1,0 +1,242 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Language {
+  EN
+  ES
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          Role      @default(USER)
+  accounts      Account[]
+  sessions      Session[]
+  progress      UserProgress[]
+  attempts      ExamAttempt[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Course {
+  id           String              @id @default(cuid())
+  slug         String              @unique
+  image        String?
+  published    Boolean             @default(false)
+  translations CourseTranslation[]
+  modules      Module[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+}
+
+model CourseTranslation {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  language    Language
+  title       String
+  description String?
+
+  @@unique([courseId, language])
+}
+
+model Module {
+  id           String              @id @default(cuid())
+  order        Int
+  courseId     String
+  course       Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  translations ModuleTranslation[]
+  topics       Topic[]
+  challenges   Challenge[]
+  exams        Exam[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+}
+
+model ModuleTranslation {
+  id          String   @id @default(cuid())
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  moduleId    String
+  language    Language
+  title       String
+  description String?
+
+  @@unique([moduleId, language])
+}
+
+model Topic {
+  id           String             @id @default(cuid())
+  order        Int
+  moduleId     String
+  module       Module             @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  translations TopicTranslation[]
+  userProgress UserProgress[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
+model TopicTranslation {
+  id       String   @id @default(cuid())
+  topicId  String
+  topic    Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  language Language
+  title    String
+  content  String   @db.Text
+  videoUrl String?
+
+  @@unique([topicId, language])
+}
+
+model Challenge {
+  id           String                 @id @default(cuid())
+  order        Int
+  moduleId     String
+  module       Module                 @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  translations ChallengeTranslation[]
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+}
+
+model ChallengeTranslation {
+  id          String    @id @default(cuid())
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  language    Language
+  title       String
+  description String    @db.Text
+  content     String    @db.Text
+
+  @@unique([challengeId, language])
+}
+
+model Exam {
+  id           String            @id @default(cuid())
+  order        Int
+  moduleId     String
+  module       Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  translations ExamTranslation[]
+  questions    Question[]
+  attempts     ExamAttempt[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
+model ExamTranslation {
+  id          String   @id @default(cuid())
+  examId      String
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  language    Language
+  title       String
+  description String?
+
+  @@unique([examId, language])
+}
+
+model Question {
+  id           String                @id @default(cuid())
+  examId       String
+  exam         Exam                  @relation(fields: [examId], references: [id], onDelete: Cascade)
+  translations QuestionTranslation[]
+  answers      ExamAnswer[]
+}
+
+model QuestionTranslation {
+  id            String   @id @default(cuid())
+  questionId    String
+  question      Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  language      Language
+  text          String   @db.Text
+  options       Json     // Stores an array of options
+  explanation   String?  @db.Text
+  correctOption Int      // Index of the correct option
+
+  @@unique([questionId, language])
+}
+
+model ExamAttempt {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  examId      String
+  exam        Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  score       Int?         // Final score percentage
+  isFinished  Boolean      @default(false)
+  answers     ExamAnswer[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([userId, examId, isFinished]) // Only one active attempt per exam
+}
+
+model ExamAnswer {
+  id             String      @id @default(cuid())
+  attemptId      String
+  attempt        ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId     String
+  question       Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOption Int
+  isCorrect      Boolean
+
+  @@unique([attemptId, questionId])
+}
+
+model UserProgress {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topicId   String
+  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  completed Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, topicId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}

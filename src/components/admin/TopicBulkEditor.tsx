@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { bulkCreateTopics } from "@/lib/actions/module";
@@ -142,8 +143,7 @@ export default function TopicBulkEditor({ moduleId, courseId, existingTopics = [
                     
                     <div className="p-6 prose prose-zinc dark:prose-invert max-w-none">
                       <ReactMarkdown 
-                        remarkPlugins={[remarkGfm]}
-                        components={{
+                        remarkPlugins={[remarkGfm, remarkBreaks]}                        components={{
                           code({ inline, className, children, ...props }: any) {
                             const match = /language-(\w+)/.exec(className || "");
                             return !inline && match ? (

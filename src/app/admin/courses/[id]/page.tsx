@@ -6,6 +6,7 @@ import { Language } from "@prisma/client";
 import ModuleListEditor from "@/components/admin/ModuleListEditor";
 import CourseStatusToggle from "@/components/admin/CourseStatusToggle";
 import CreateModuleForm from "@/components/admin/CreateModuleForm";
+import ModuleBulkGenerator from "@/components/admin/ModuleBulkGenerator";
 import Link from "next/link";
 
 async function getCourseWithContent(id: string) {
@@ -86,6 +87,10 @@ export default async function AdminCourseDetailPage({ params }: { params: Promis
         {/* Right: Creation Forms */}
         <div className="lg:col-span-4">
           <div className="sticky top-24 space-y-8">
+            <ModuleBulkGenerator 
+              courseId={course.id} 
+              nextOrder={course.modules.length + 1} 
+            />
             <CreateModuleForm 
               courseId={course.id} 
               nextOrder={course.modules.length + 1} 

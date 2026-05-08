@@ -124,7 +124,7 @@ export async function bulkCreateTopics(moduleId: string, courseId: string, topic
         });
       }
     }, {
-      timeout: 50000 // 50 segundos para operaciones grandes
+      timeout: 30000 // 30 segundos para operaciones grandes
     });
 
     revalidatePath(`/admin/courses/${courseId}`);
@@ -132,5 +132,38 @@ export async function bulkCreateTopics(moduleId: string, courseId: string, topic
   } catch (error) {
     console.error("Failed to bulk create topics:", error);
     return { success: false, error: "Invalid JSON format or database error" };
+  }
+}
+
+export async function bulkCreateModules(courseId: string, modulesData: any[]) {
+  const session = await getServerSession(authOptions);
+  if (session?.user.role !== "ADMIN") throw new Error("Unauthorized");
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      for (const mod of modulesData) {
+        await tx.module.create({
+          data: {
+            courseId,
+            order: mod.order,
+            translations: {
+              create: mod.translations.map((t: any) => ({
+                language: t.language as Language,
+                title: t.title,
+                description: t.description
+              }))
+            }
+          }
+        });
+      }
+    }, {
+      timeout: 30000
+    });
+
+    revalidatePath(`/admin/courses/${courseId}`);
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to bulk create modules:", error);
+    return { success: false, error: "Database error during bulk module creation" };
   }
 }

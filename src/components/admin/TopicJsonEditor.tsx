@@ -8,6 +8,7 @@ import remarkBreaks from "remark-breaks";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { saveTopicJson } from "@/lib/actions/topic";
+import { generateTopicContent } from "@/lib/actions/gemini";
 import { useToast } from "@/context/ToastContext";
 
 interface TopicJsonEditorProps {
@@ -23,6 +24,8 @@ interface TopicJsonEditorProps {
 export default function TopicJsonEditor({ topicId, moduleId, courseId, topic }: TopicJsonEditorProps) {
   const [json, setJson] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [extraContext, setExtraContext] = useState("");
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<"ES" | "EN">("ES");
   const { showToast } = useToast();
@@ -59,13 +62,69 @@ export default function TopicJsonEditor({ topicId, moduleId, courseId, topic }: 
     }
   };
 
+  const handleGenerate = async () => {
+    if (!parsed) return;
+    
+    const titleEs = parsed.translations.find((t: any) => t.language === "ES")?.title || "";
+    const titleEn = parsed.translations.find((t: any) => t.language === "EN")?.title || "";
+    
+    if (!titleEs || !titleEn) {
+      showToast("Se necesitan títulos en ambos idiomas para generar contenido", "error");
+      return;
+    }
+
+    setIsGenerating(true);
+    setError("");
+    
+    const result = await generateTopicContent(titleEs, titleEn, extraContext, parsed.order);
+    
+    setIsGenerating(false);
+    
+    if (result.success && result.data) {
+      setJson(JSON.stringify(result.data, null, 2));
+      showToast("Contenido generado con éxito", "success");
+    } else {
+      const msg = result.error || "Error al generar contenido";
+      setError(msg);
+      showToast(msg, "error");
+    }
+  };
+
   const previewTranslation = parsed?.translations?.find((t: any) => t.language === activeTab);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Editor */}
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
+        {/* AI Generator */}
+        <div className="bg-zinc-100 dark:bg-zinc-800/50 p-6 rounded-[2rem] border border-zinc-200 dark:border-zinc-700 space-y-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xl">✨</span>
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">Generador de Contenido IA</h4>
+          </div>
+          <textarea
+            placeholder="Contexto adicional para la IA (opcional)... Ej: Enfoque práctico con ejemplos de React hooks."
+            value={extraContext}
+            onChange={(e) => setExtraContext(e.target.value)}
+            className="w-full p-4 text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 resize-none h-24 transition-all"
+          />
+          <button
+            onClick={handleGenerate}
+            disabled={isGenerating || !parsed}
+            className="w-full py-3.5 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg shadow-black/5 dark:shadow-white/5"
+          >
+            {isGenerating ? (
+              <>
+                <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                Generando con Gemini...
+              </>
+            ) : (
+              "Generar Contenido Base"
+            )}
+          </button>
+        </div>
+
+        <div className="flex justify-between items-center px-2">
           <h3 className="font-bold text-sm uppercase tracking-wider text-zinc-500">JSON Editor</h3>
           <span className="text-[10px] text-zinc-400 font-mono">
             {parsed ? "✓ JSON válido" : "✗ JSON inválido"}
@@ -75,7 +134,7 @@ export default function TopicJsonEditor({ topicId, moduleId, courseId, topic }: 
           <textarea
             value={json}
             onChange={(e) => { setJson(e.target.value); setError(""); }}
-            className="w-full h-[560px] p-6 font-mono text-sm bg-zinc-950 text-emerald-400 rounded-2xl border border-zinc-800 outline-none focus:ring-2 focus:ring-blue-600 shadow-2xl resize-none"
+            className="w-full h-[400px] p-6 font-mono text-sm bg-zinc-950 text-emerald-400 rounded-[2rem] border border-zinc-800 outline-none focus:ring-2 focus:ring-blue-600 shadow-2xl resize-none"
           />
         </div>
         {error && (

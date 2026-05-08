@@ -99,6 +99,7 @@ export async function bulkCreateTopics(moduleId: string, courseId: string, topic
     const topicsData = JSON.parse(topicsJson);
 
     // Use a transaction to ensure all topics are created or none
+    // We increase the timeout to 30s to allow for large bulk operations
     await prisma.$transaction(async (tx) => {
       // First, delete existing topics for this module to perform a full sync
       await tx.topic.deleteMany({
@@ -122,6 +123,8 @@ export async function bulkCreateTopics(moduleId: string, courseId: string, topic
           }
         });
       }
+    }, {
+      timeout: 50000 // 50 segundos para operaciones grandes
     });
 
     revalidatePath(`/admin/courses/${courseId}`);

@@ -21,6 +21,7 @@ export async function generateTopicContent(
     return { success: false, error: "GEMINI_API_KEY no configurada en el servidor" };
   }
 
+  // Usamos el modelo solicitado por el usuario
   const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
   const prompt = `
@@ -71,19 +72,91 @@ export async function generateTopicContent(
   } catch (error: any) {
     console.error("Gemini generation error:", error);
 
-    if (error.status === 429) {
-      const retryDetail = error.errorDetails?.find(
-        (d: any) => d["@type"] === "type.googleapis.com/google.rpc.RetryInfo"
-      );
-      const retryIn = retryDetail?.retryDelay
-        ? ` Reintenta en ${retryDetail.retryDelay}.`
-        : "";
+    // Error 429: Too Many Requests / Quota Exceeded
+    if (error.status === 429 || (error.message && error.message.includes("429"))) {
       return {
         success: false,
-        error: `Cuota de Gemini agotada.${retryIn} Si el problema persiste, verifica tu plan en https://aistudio.google.com/`
+        error: "Has agotado la cuota gratuita de Gemini para este modelo hoy. Inténtalo de nuevo más tarde o verifica tu cuota en Google AI Studio."
       };
     }
 
     return { success: false, error: "Error al generar contenido con Gemini. Verifica tu conexión y API Key." };
+  }
+}
+
+export async function generateModuleTopics(
+  moduleDescription: string,
+  topicCount: number = 5,
+  suggestedTopics: string = "",
+  startOrder: number = 1
+) {
+  const session = await getServerSession(authOptions);
+  if (session?.user.role !== "ADMIN") {
+    throw new Error("Unauthorized");
+  }
+
+  if (!process.env.GEMINI_API_KEY) {
+    return { success: false, error: "GEMINI_API_KEY no configurada en el servidor" };
+  }
+
+  const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+
+  const prompt = `
+    Actúa como un experto en diseño instruccional y educación tecnológica. 
+    Tu tarea es diseñar la estructura completa de temas para un módulo de un curso online.
+    
+    DESCRIPCIÓN/OBJETIVO DEL MÓDULO: ${moduleDescription}
+    CANTIDAD DE TEMAS SOLICITADOS: ${topicCount}
+    TEMAS SUGERIDOS POR EL USUARIO (INCLUIR SI EXISTEN): ${suggestedTopics}
+    ORDEN INICIAL: ${startOrder}
+
+    REQUISITOS:
+    1. Genera exactamente ${topicCount} temas.
+    2. Si el usuario sugirió temas, inclúyelos en la secuencia lógica donde mejor encajen.
+    3. Para cada tema, genera un título profesional en ESPAÑOL y otro en INGLÉS.
+    4. Para cada tema, genera una breve introducción (1-2 párrafos) en Markdown para ambos idiomas.
+    5. El resultado debe seguir exactamente esta estructura de texto para que yo pueda procesarlo:
+    
+    TEMA [Número]
+    TITULO_ES: [Título en español]
+    TITULO_EN: [Título en inglés]
+    CONTENIDO_ES: [Contenido breve en español]
+    CONTENIDO_EN: [Contenido breve en inglés]
+    ===NEXT_TOPIC===
+    [Siguiente Tema]
+    ...etc
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    const topicBlocks = text.split("===NEXT_TOPIC===").filter(block => block.trim().length > 10);
+    const topics = topicBlocks.map((block, index) => {
+      const lines = block.split("\n");
+      const titleEs = lines.find(l => l.includes("TITULO_ES:"))?.split("TITULO_ES:")[1]?.trim() || "Nuevo Tema";
+      const titleEn = lines.find(l => l.includes("TITULO_EN:"))?.split("TITULO_EN:")[1]?.trim() || "New Topic";
+      
+      // Extraer contenidos (pueden ser multilínea hasta que empiece el siguiente campo)
+      const contentEsMatch = block.match(/CONTENIDO_ES:([\s\S]*?)CONTENIDO_EN:/);
+      const contentEnMatch = block.match(/CONTENIDO_EN:([\s\S]*)/);
+      
+      const contentEs = contentEsMatch ? contentEsMatch[1].trim() : "# " + titleEs;
+      const contentEn = contentEnMatch ? contentEnMatch[1].trim() : "# " + titleEn;
+
+      return {
+        order: startOrder + index,
+        translations: [
+          { language: "ES", title: titleEs, content: contentEs, videoUrl: null },
+          { language: "EN", title: titleEn, content: contentEn, videoUrl: null }
+        ]
+      };
+    });
+
+    return { success: true, data: topics };
+  } catch (error: any) {
+    console.error("Gemini bulk generation error:", error);
+    return { success: false, error: "Error al generar temas con Gemini" };
   }
 }

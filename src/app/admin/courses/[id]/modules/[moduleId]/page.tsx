@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { Language } from "@prisma/client";
 import TopicListEditor from "@/components/admin/TopicListEditor";
 import CreateTopicForm from "@/components/admin/CreateTopicForm";
+import TopicBulkEditor from "@/components/admin/TopicBulkEditor";
 import Link from "next/link";
 
 async function getModuleData(moduleId: string) {
@@ -26,20 +27,24 @@ async function getModuleData(moduleId: string) {
 }
 
 export default async function AdminModuleTopicsPage({
-  params
+  params,
+  searchParams
 }: {
-  params: Promise<{ id: string; moduleId: string }>
+  params: Promise<{ id: string; moduleId: string }>,
+  searchParams: Promise<{ mode?: string }>
 }) {
   const session = await getServerSession(authOptions);
   if (session?.user.role !== "ADMIN") redirect("/");
 
   const { id, moduleId } = await params;
+  const { mode } = await searchParams;
   const moduleData = await getModuleData(moduleId);
 
   if (!moduleData) notFound();
 
   const titleEs = moduleData.translations.find(t => t.language === Language.ES)?.title || "Sin título";
   const nextOrder = moduleData.topics.length + 1;
+  const isBulkMode = mode === "bulk";
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
@@ -64,31 +69,61 @@ export default async function AdminModuleTopicsPage({
             </div>
           </div>
         </div>
+
+        {/* Tab Switcher */}
+        <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1.5 rounded-2xl shadow-inner">
+          <Link
+            href={`/admin/courses/${id}/modules/${moduleId}`}
+            className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${!isBulkMode ? "bg-white dark:bg-zinc-700 shadow-sm text-black dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"}`}
+          >
+            Temas Individuales
+          </Link>
+          <Link
+            href={`/admin/courses/${id}/modules/${moduleId}?mode=bulk`}
+            className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${isBulkMode ? "bg-white dark:bg-zinc-700 shadow-sm text-black dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"}`}
+          >
+            Edición Masiva (IA)
+          </Link>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-        {/* Left: topic list */}
-        <div className="lg:col-span-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-black">Temas</h2>
-            <span className="px-4 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-full text-xs font-bold uppercase tracking-widest text-zinc-500">
-              {moduleData.topics.length} en total
-            </span>
+      {!isBulkMode ? (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+          {/* Left: topic list */}
+          <div className="lg:col-span-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-black">Temas</h2>
+              <span className="px-4 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-full text-xs font-bold uppercase tracking-widest text-zinc-500">
+                {moduleData.topics.length} en total
+              </span>
+            </div>
+            <TopicListEditor
+              courseId={id}
+              moduleId={moduleId}
+              topics={moduleData.topics}
+            />
           </div>
-          <TopicListEditor
-            courseId={id}
-            moduleId={moduleId}
-            topics={moduleData.topics}
+
+          {/* Right: add topic form */}
+          <div className="lg:col-span-4">
+            <div className="sticky top-24">
+              <CreateTopicForm courseId={id} moduleId={moduleId} nextOrder={nextOrder} />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <h2 className="text-2xl font-black mb-2">Edición Masiva de Temas</h2>
+          <p className="text-zinc-500 text-sm font-medium mb-8">
+            Usa el generador de IA para crear una estructura completa o edita el JSON directamente.
+          </p>
+          <TopicBulkEditor 
+            moduleId={moduleId} 
+            courseId={id} 
+            existingTopics={moduleData.topics} 
           />
         </div>
-
-        {/* Right: add topic form */}
-        <div className="lg:col-span-4">
-          <div className="sticky top-24">
-            <CreateTopicForm courseId={id} moduleId={moduleId} nextOrder={nextOrder} />
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

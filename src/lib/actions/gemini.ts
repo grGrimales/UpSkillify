@@ -224,3 +224,4 @@ export async function generateCourseModules(
     return { success: false, error: "Error al generar módulos con Gemini" };
   }
 }
+

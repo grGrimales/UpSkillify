@@ -241,3 +241,74 @@ export async function generateCourseModules(
   }
 }
 
+/**
+ * Genera preguntas de examen basadas en el contenido de los temas seleccionados
+ */
+export async function generateExamQuestions(
+  topicContentsEn: string[],
+  questionCount: number = 5,
+  extraInstructions: string = ""
+) {
+  const session = await getServerSession(authOptions);
+  if (session?.user.role !== "ADMIN") {
+    throw new Error("Unauthorized");
+  }
+
+  if (!process.env.GEMINI_API_KEY) {
+    return { success: false, error: "GEMINI_API_KEY no configurada en el servidor" };
+  }
+
+  // Configuración validada: GEMINI_MODEL en v1beta
+  const model = genAI.getGenerativeModel(
+    { model: GEMINI_MODEL },
+    { apiVersion: "v1beta" }
+  );
+
+  const combinedContent = topicContentsEn.join("\n\n---\n\n");
+
+  const prompt = `
+    Actúa como un experto en evaluación educativa. Genera un examen de alta calidad basado EN EL CONTENIDO PROPORCIONADO.
+    
+    CONTENIDO DE REFERENCIA (EN INGLÉS):
+    ${combinedContent}
+
+    CANTIDAD DE PREGUNTAS: ${questionCount}
+    INSTRUCCIONES ADICIONALES: ${extraInstructions}
+
+    REQUISITOS:
+    1. Genera exactamente ${questionCount} preguntas.
+    2. CADA PREGUNTA debe estar en ESPAÑOL e INGLÉS.
+    3. Cada pregunta debe tener exactamente 4 opciones.
+    4. El resultado debe ser un JSON válido que siga esta estructura:
+    
+    [
+      {
+        "questionEn": "Question text in English",
+        "questionEs": "Texto de la pregunta en español",
+        "optionsEn": ["Option 1", "Option 2", "Option 3", "Option 4"],
+        "optionsEs": ["Opción 1", "Opción 2", "Opción 3", "Opción 4"],
+        "correctOption": 0, // Índice de la opción correcta (0-3)
+        "explanationEn": "Explanation of why this is the correct answer in English",
+        "explanationEs": "Explicación de por qué esta es la respuesta correcta en español"
+      }
+    ]
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    // Extraer el JSON de la respuesta (por si el modelo incluye markdown \`\`\`json)
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    const jsonStr = jsonMatch ? jsonMatch[0] : text;
+    
+    const questions = JSON.parse(jsonStr);
+
+    return { success: true, data: questions };
+  } catch (error: any) {
+    console.error("Gemini exam generation error:", error);
+    return { success: false, error: "Error al generar el examen con Gemini." };
+  }
+}
+

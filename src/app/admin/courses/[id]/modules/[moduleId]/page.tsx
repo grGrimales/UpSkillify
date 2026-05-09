@@ -6,6 +6,7 @@ import { Language } from "@prisma/client";
 import TopicListEditor from "@/components/admin/TopicListEditor";
 import CreateTopicForm from "@/components/admin/CreateTopicForm";
 import TopicBulkEditor from "@/components/admin/TopicBulkEditor";
+import ExamGenerator from "@/components/admin/ExamGenerator";
 import Link from "next/link";
 
 async function getModuleData(moduleId: string) {
@@ -45,6 +46,7 @@ export default async function AdminModuleTopicsPage({
   const titleEs = moduleData.translations.find(t => t.language === Language.ES)?.title || "Sin título";
   const nextOrder = moduleData.topics.length + 1;
   const isBulkMode = mode === "bulk";
+  const isExamMode = mode === "exams";
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
@@ -74,20 +76,37 @@ export default async function AdminModuleTopicsPage({
         <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1.5 rounded-2xl shadow-inner">
           <Link
             href={`/admin/courses/${id}/modules/${moduleId}`}
-            className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${!isBulkMode ? "bg-white dark:bg-zinc-700 shadow-sm text-black dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"}`}
+            className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${mode !== "bulk" && mode !== "exams" ? "bg-white dark:bg-zinc-700 shadow-sm text-black dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"}`}
           >
             Temas Individuales
           </Link>
           <Link
             href={`/admin/courses/${id}/modules/${moduleId}?mode=bulk`}
-            className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${isBulkMode ? "bg-white dark:bg-zinc-700 shadow-sm text-black dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"}`}
+            className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${mode === "bulk" ? "bg-white dark:bg-zinc-700 shadow-sm text-black dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"}`}
           >
             Edición Masiva (IA)
+          </Link>
+          <Link
+            href={`/admin/courses/${id}/modules/${moduleId}?mode=exams`}
+            className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${mode === "exams" ? "bg-white dark:bg-zinc-700 shadow-sm text-black dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"}`}
+          >
+            Generador de Exámenes (IA)
           </Link>
         </div>
       </div>
 
-      {!isBulkMode ? (
+      {isExamMode ? (
+        <div>
+          <h2 className="text-2xl font-black mb-2">Generador de Exámenes</h2>
+          <p className="text-zinc-500 text-sm font-medium mb-8">
+            Selecciona los temas que serviran de base para que la IA genere las preguntas.
+          </p>
+          <ExamGenerator 
+            topics={moduleData.topics}
+            moduleId={moduleId}
+          />
+        </div>
+      ) : !isBulkMode ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           {/* Left: topic list */}
           <div className="lg:col-span-8">

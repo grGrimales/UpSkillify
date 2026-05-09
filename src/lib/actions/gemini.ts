@@ -36,8 +36,9 @@ export async function generateTopicContent(
 
     REQUISITOS:
     1. Genera contenido educativo de alta calidad en formato Markdown para AMBOS idiomas.
-    2. El contenido debe incluir: explicaciones claras, ejemplos de código y puntos clave.
-    3. Es obligatorio generar el contenido en los dos idiomas.
+    2. NO incluyas el título del tema (ni como H1, ni en ninguna otra forma) dentro del contenido Markdown, ya que el título se maneja por separado. Empieza directamente con la explicación.
+    3. El contenido debe incluir: explicaciones claras, ejemplos de código y puntos clave.
+    4. Es obligatorio generar el contenido en los dos idiomas.
     
     ESTRUCTURA DE RESPUESTA (SIGUE ESTO ESTRICTAMENTE):
     CONTENIDO_ES:
@@ -56,8 +57,15 @@ export async function generateTopicContent(
 
     const parts = text.split("===NEXT_LANGUAGE===");
 
-    const contentEs = parts[0]?.replace(/CONTENIDO_ES:/i, "").trim() || "# " + titleEs;
-    const contentEn = parts[1]?.replace(/CONTENIDO_EN:/i, "").trim() || "# " + titleEn;
+    const cleanContent = (raw: string, fallbackTitle: string) => {
+      let content = raw.replace(/CONTENIDO_(ES|EN):/i, "").trim();
+      // Eliminar un posible H1 inicial si el modelo lo incluyó a pesar de la instrucción
+      content = content.replace(/^#\s+.*(\n|$)/, "").trim();
+      return content || "Contenido para " + fallbackTitle;
+    };
+
+    const contentEs = cleanContent(parts[0] || "", titleEs);
+    const contentEn = cleanContent(parts[1] || "", titleEn);
 
     const generatedData = {
       order: order,
@@ -109,14 +117,15 @@ export async function generateModuleTopics(
     REQUISITOS OBLIGATORIOS:
     1. Genera exactamente ${topicCount} temas.
     2. CADA TEMA debe tener título y contenido en ESPAÑOL e INGLÉS. No omitas el inglés.
-    3. El resultado debe seguir esta estructura exacta para cada tema:
+    3. NO incluyas el título del tema (ni como H1) dentro de los campos CONTENIDO_ES o CONTENIDO_EN.
+    4. El resultado debe seguir esta estructura exacta para cada tema:
     
     ===TOPIC_START===
     ORDEN: [Número]
     TITULO_ES: [Título en español]
     TITULO_EN: [Título en inglés]
-    CONTENIDO_ES: [Un párrafo de introducción en español]
-    CONTENIDO_EN: [Un párrafo de introducción en inglés]
+    CONTENIDO_ES: [Un párrafo de introducción en español, sin repetir el título]
+    CONTENIDO_EN: [Un párrafo de introducción en inglés, sin repetir el título]
     ===TOPIC_END===
   `;
 
@@ -133,11 +142,17 @@ export async function generateModuleTopics(
         return block.match(regex)?.[1]?.trim() || "";
       };
 
+      const cleanField = (content: string, fallback: string) => {
+        // Eliminar H1 si el modelo lo incluyó
+        const cleaned = content.replace(/^#\s+.*(\n|$)/, "").trim();
+        return cleaned || fallback;
+      };
+
       const orderVal = parseInt(getField("ORDEN")) || startOrder;
       const titleEs = getField("TITULO_ES") || "Nuevo Tema";
       const titleEn = getField("TITULO_EN") || "New Topic";
-      const contentEs = getField("CONTENIDO_ES") || "# " + titleEs;
-      const contentEn = getField("CONTENIDO_EN") || "# " + titleEn;
+      const contentEs = cleanField(getField("CONTENIDO_ES"), titleEs);
+      const contentEn = cleanField(getField("CONTENIDO_EN"), titleEn);
 
       return {
         order: orderVal,

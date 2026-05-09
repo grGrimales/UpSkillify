@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 
 // Usamos la configuración exacta que el usuario validó como funcional
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest";
 
 /**
  * Genera el contenido detallado de un tema individual
@@ -24,7 +25,7 @@ export async function generateTopicContent(
   if (!process.env.GEMINI_API_KEY) {
     return { success: false, error: "GEMINI_API_KEY no configurada en el servidor" };
   }
-  const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+  const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
 
   const prompt = `
     Actúa como un experto en educación tecnológica. Genera el contenido detallado de un tema para un curso online.
@@ -55,8 +56,8 @@ export async function generateTopicContent(
 
     const parts = text.split("===NEXT_LANGUAGE===");
 
-    let contentEs = parts[0]?.replace(/CONTENIDO_ES:/i, "").trim() || "# " + titleEs;
-    let contentEn = parts[1]?.replace(/CONTENIDO_EN:/i, "").trim() || "# " + titleEn;
+    const contentEs = parts[0]?.replace(/CONTENIDO_ES:/i, "").trim() || "# " + titleEs;
+    const contentEn = parts[1]?.replace(/CONTENIDO_EN:/i, "").trim() || "# " + titleEn;
 
     const generatedData = {
       order: order,
@@ -91,9 +92,9 @@ export async function generateModuleTopics(
     return { success: false, error: "GEMINI_API_KEY no configurada en el servidor" };
   }
 
-  // Configuración validada: gemini-flash-latest en v1beta
+  // Configuración validada: GEMINI_MODEL en v1beta
   const model = genAI.getGenerativeModel(
-    { model: "gemini-flash-latest" },
+    { model: GEMINI_MODEL },
     { apiVersion: "v1beta" }
   );
 
@@ -170,9 +171,9 @@ export async function generateCourseModules(
     return { success: false, error: "GEMINI_API_KEY no configurada en el servidor" };
   }
 
-  // Configuración validada: gemini-flash-latest en v1beta
+  // Configuración validada: GEMINI_MODEL en v1beta
   const model = genAI.getGenerativeModel(
-    { model: "gemini-flash-latest" },
+    { model: GEMINI_MODEL },
     { apiVersion: "v1beta" }
   );
 

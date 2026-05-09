@@ -4,8 +4,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { cookies } from "next/headers";
 import { Language } from "@prisma/client";
+import CourseList from "@/components/courses/CourseList";
 
-async function getCourses(lang: Language) {
+async function getCourses(lang: Language, userId?: string) {
   const courses = await prisma.course.findMany({
     where: { published: true },
     include: {
@@ -15,15 +16,39 @@ async function getCourses(lang: Language) {
       _count: {
         select: { modules: true },
       },
+      modules: {
+        select: {
+          topics: {
+            select: { id: true }
+          }
+        }
+      }
     },
     orderBy: { createdAt: "desc" },
   });
 
-  return courses.map(course => ({
-    ...course,
-    title: course.translations[0]?.title || "Untranslated",
-    description: course.translations[0]?.description || ""
-  }));
+  let enrolledTopicIds: string[] = [];
+  if (userId) {
+    const progress = await prisma.userProgress.findMany({
+      where: { userId },
+      select: { topicId: true }
+    });
+    enrolledTopicIds = progress.map(p => p.topicId);
+  }
+
+  return courses.map(course => {
+    const topicIds = course.modules.flatMap(m => m.topics.map(t => t.id));
+    const isEnrolled = userId ? topicIds.some(id => enrolledTopicIds.includes(id)) : false;
+
+    return {
+      id: course.id,
+      slug: course.slug,
+      title: course.translations[0]?.title || "Untranslated",
+      description: course.translations[0]?.description || "",
+      moduleCount: course._count.modules,
+      isEnrolled
+    };
+  });
 }
 
 export default async function Home() {
@@ -33,7 +58,7 @@ export default async function Home() {
   const cookieStore = await cookies();
   const lang = (cookieStore.get("language")?.value as Language) || Language.ES;
 
-  const courses = await getCourses(lang);
+  const courses = await getCourses(lang, session?.user?.id);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -68,56 +93,11 @@ export default async function Home() {
       </section>
 
       {/* Courses Grid */}
-      <section className="py-20 px-4 max-w-6xl mx-auto w-full">
-        <div className="flex justify-between items-end mb-12">
-          <div>
-            <h2 className="text-3xl font-bold mb-2">{lang === "ES" ? "Explorar Cursos" : "Explore Courses"}</h2>
-            <p className="text-zinc-600 dark:text-zinc-400">
-              {lang === "ES" ? "Elige tu próxima aventura" : "Choose your next learning adventure"}
-            </p>
-          </div>
-        </div>
-
-        {courses.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {courses.map((course) => (
-              <div 
-                key={course.id} 
-                className="group relative flex flex-col bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden hover:shadow-xl hover:border-blue-500/50 transition-all duration-300"
-              >
-                <div className="aspect-video bg-zinc-100 dark:bg-zinc-800 relative">
-                  <div className="absolute inset-0 flex items-center justify-center text-zinc-400 font-bold text-lg uppercase tracking-widest">
-                    {course.title.split(' ').map(w => w[0]).join('')}
-                  </div>
-                </div>
-                <div className="p-6 flex flex-col flex-1">
-                  <h3 className="text-xl font-bold mb-2 group-hover:text-blue-600 transition-colors">
-                    {course.title}
-                  </h3>
-                  <p className="text-zinc-600 dark:text-zinc-400 text-sm line-clamp-2 mb-4 flex-1">
-                    {course.description}
-                  </p>
-                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                    <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
-                      {course._count.modules} {lang === "ES" ? "Módulos" : "Modules"}
-                    </span>
-                    <Link 
-                      href={`/courses/${course.slug}`}
-                      className="text-sm font-bold text-blue-600 hover:underline"
-                    >
-                      {lang === "ES" ? "Ver Detalles" : "View Details"} →
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-20 bg-zinc-50 dark:bg-zinc-900/30 rounded-3xl border-2 border-dashed border-zinc-200 dark:border-zinc-800">
-            <p className="text-zinc-500">{lang === "ES" ? "No hay cursos disponibles." : "No courses available."}</p>
-          </div>
-        )}
-      </section>
+      <CourseList 
+        initialCourses={courses} 
+        lang={lang} 
+        isLoggedIn={!!session} 
+      />
     </div>
   );
 }

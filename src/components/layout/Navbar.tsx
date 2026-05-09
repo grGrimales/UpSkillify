@@ -1,5 +1,6 @@
 import Link from "next/link";
 import LanguageSelector from "./LanguageSelector";
+import ThemeSwitcher from "./ThemeSwitcher";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import LogoutButton from "../auth/LogoutButton";
@@ -27,6 +28,7 @@ export default async function Navbar() {
           </div>
 
           <div className="flex items-center gap-4">
+            <ThemeSwitcher />
             <LanguageSelector />
             
             {session ? (

@@ -19,7 +19,13 @@ async function getCourses(lang: Language, userId?: string) {
       modules: {
         select: {
           topics: {
-            select: { id: true }
+            select: { 
+              id: true,
+              userProgress: userId ? {
+                where: { userId },
+                select: { createdAt: true }
+              } : false
+            }
           }
         }
       }
@@ -27,18 +33,23 @@ async function getCourses(lang: Language, userId?: string) {
     orderBy: { createdAt: "desc" },
   });
 
-  let enrolledTopicIds: string[] = [];
-  if (userId) {
-    const progress = await prisma.userProgress.findMany({
-      where: { userId },
-      select: { topicId: true }
-    });
-    enrolledTopicIds = progress.map(p => p.topicId);
-  }
+  const processedCourses = courses.map(course => {
+    const topicsWithProgress = course.modules.flatMap(m => m.topics);
+    const topicIds = topicsWithProgress.map(t => t.id);
+    
+    // Find the latest progress date for this course
+    let latestActivity = new Date(0);
+    let isEnrolled = false;
 
-  return courses.map(course => {
-    const topicIds = course.modules.flatMap(m => m.topics.map(t => t.id));
-    const isEnrolled = userId ? topicIds.some(id => enrolledTopicIds.includes(id)) : false;
+    topicsWithProgress.forEach(topic => {
+      if (topic.userProgress && topic.userProgress.length > 0) {
+        isEnrolled = true;
+        const progressDate = new Date(topic.userProgress[0].createdAt);
+        if (progressDate > latestActivity) {
+          latestActivity = progressDate;
+        }
+      }
+    });
 
     return {
       id: course.id,
@@ -46,9 +57,22 @@ async function getCourses(lang: Language, userId?: string) {
       title: course.translations[0]?.title || "Untranslated",
       description: course.translations[0]?.description || "",
       moduleCount: course._count.modules,
-      isEnrolled
+      isEnrolled,
+      latestActivity: latestActivity.getTime()
     };
   });
+
+  // If logged in, sort by latest activity first, then by default
+  if (userId) {
+    return processedCourses.sort((a, b) => {
+      if (a.latestActivity > 0 || b.latestActivity > 0) {
+        return b.latestActivity - a.latestActivity;
+      }
+      return 0; // Maintain original order for courses with no activity
+    });
+  }
+
+  return processedCourses;
 }
 
 export default async function Home() {

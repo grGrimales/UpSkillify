@@ -12,6 +12,8 @@ import { cookies } from "next/headers";
 import { Language } from "@prisma/client";
 import CompleteButton from "@/components/courses/CompleteButton";
 import TopicNavigation from "@/components/courses/TopicNavigation";
+import FocusModeToggle from "@/components/courses/FocusModeToggle";
+import FocusAwareContent from "@/components/courses/FocusAwareContent";
 
 async function getTopicData(topicId: string, lang: Language, userId?: string) {
   const topic = await prisma.topic.findUnique({
@@ -150,27 +152,31 @@ export default async function TopicPage({
   const { topic, isCompleted, nextTopicId, prevTopicId } = data;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
-      {/* Navigation */}
+    <FocusAwareContent>
+      {/* Navigation & Tools */}
       <nav className="mb-6 md:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <Link 
-          href={`/courses/${slug}`} 
-          className="text-sm font-medium text-zinc-500 hover:text-black dark:hover:text-white flex items-center gap-2 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7 7-7" />
-          </svg>
-          <span className="truncate max-w-[200px] md:max-w-none">
-            {lang === "ES" ? `Volver a ${topic.module.course.title}` : `Back to ${topic.module.course.title}`}
-          </span>
-        </Link>
-        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
-          {topic.module.title}
-        </span>
-      </nav>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
+            <Link 
+              href={`/courses/${slug}`} 
+              className="text-sm font-medium text-zinc-500 hover:text-black dark:hover:text-white flex items-center gap-2 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7 7-7" />
+              </svg>
+              <span className="truncate max-w-[200px] md:max-w-none">
+                {lang === "ES" ? `Volver a ${topic.module.course.title}` : `Back to ${topic.module.course.title}`}
+              </span>
+            </Link>
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
+              {topic.module.title}
+            </span>
+          </div>
 
-      {/* Content */}
-      <article className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm">
+          <FocusModeToggle lang={lang} />
+        </nav>
+
+        {/* Content */}
+        <article className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm">
         <header className="p-6 md:p-12 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/20">
           <h1 className="text-2xl md:text-4xl font-extrabold leading-tight">{topic.title}</h1>
         </header>
@@ -236,6 +242,6 @@ export default async function TopicPage({
         courseSlug={slug}
         lang={lang}
       />
-    </div>
+    </FocusAwareContent>
   );
 }

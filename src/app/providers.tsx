@@ -4,6 +4,7 @@ import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { ToastProvider } from "@/context/ToastContext";
+import { FocusModeProvider } from "@/context/FocusModeContext";
 
 // Suppress React 19 script tag warning from next-themes
 if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
@@ -28,9 +29,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
       themes={["light", "dark", "sepia", "dim"]}
     >
       <SessionProvider>
-        <LanguageProvider>
-          <ToastProvider>{children}</ToastProvider>
-        </LanguageProvider>
+        <FocusModeProvider>
+          <LanguageProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </LanguageProvider>
+        </FocusModeProvider>
       </SessionProvider>
     </ThemeProvider>
   );

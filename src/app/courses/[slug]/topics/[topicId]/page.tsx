@@ -150,27 +150,32 @@ export default async function TopicPage({
   const { topic, isCompleted, nextTopicId, prevTopicId } = data;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
+    <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
       {/* Navigation */}
-      <nav className="mb-8 flex justify-between items-center">
+      <nav className="mb-6 md:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <Link 
           href={`/courses/${slug}`} 
-          className="text-sm font-medium text-zinc-500 hover:text-black dark:hover:text-white flex items-center gap-2"
+          className="text-sm font-medium text-zinc-500 hover:text-black dark:hover:text-white flex items-center gap-2 transition-colors"
         >
-          ← {lang === "ES" ? `Volver a ${topic.module.course.title}` : `Back to ${topic.module.course.title}`}
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7 7-7" />
+          </svg>
+          <span className="truncate max-w-[200px] md:max-w-none">
+            {lang === "ES" ? `Volver a ${topic.module.course.title}` : `Back to ${topic.module.course.title}`}
+          </span>
         </Link>
-        <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
+        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
           {topic.module.title}
         </span>
       </nav>
 
       {/* Content */}
-      <article className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-sm">
-        <header className="p-8 md:p-12 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/20">
-          <h1 className="text-3xl md:text-4xl font-extrabold">{topic.title}</h1>
+      <article className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm">
+        <header className="p-6 md:p-12 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/20">
+          <h1 className="text-2xl md:text-4xl font-extrabold leading-tight">{topic.title}</h1>
         </header>
         
-        <div className="p-8 md:p-12 prose prose-zinc dark:prose-invert max-w-none">
+        <div className="p-6 md:p-12 prose prose-zinc dark:prose-invert max-w-none prose-headings:font-bold prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-img:rounded-xl">
           <ReactMarkdown 
             remarkPlugins={[remarkGfm, remarkBreaks]}
             components={{

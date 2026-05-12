@@ -101,3 +101,32 @@ export async function saveTopicJson(topicId: string, jsonData: string, courseId:
     return { success: false, error: "Invalid JSON or database error" };
   }
 }
+
+export async function getTopicsContent(topicIds: string[], language: Language) {
+  try {
+    const topics = await prisma.topic.findMany({
+      where: {
+        id: { in: topicIds }
+      },
+      orderBy: {
+        order: "asc"
+      },
+      include: {
+        translations: {
+          where: {
+            language: language
+          }
+        }
+      }
+    });
+
+    return topics.map(topic => ({
+      id: topic.id,
+      title: topic.translations[0]?.title || "Untitled",
+      content: topic.translations[0]?.content || ""
+    }));
+  } catch (error) {
+    console.error("Failed to fetch topics content:", error);
+    throw new Error("Failed to fetch topics content");
+  }
+}

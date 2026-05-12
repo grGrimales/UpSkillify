@@ -26,7 +26,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
       defaultTheme="system"
       enableSystem
       themes={["light", "dark", "sepia", "dim"]}
-      suppressHydrationWarning
     >
       <SessionProvider>
         <LanguageProvider>

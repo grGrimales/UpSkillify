@@ -78,3 +78,63 @@ export async function toggleCourseStatus(courseId: string) {
     return { success: false, error: "Failed to toggle status" };
   }
 }
+
+export async function enrollInCourse(courseId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Unauthorized");
+
+  try {
+    await prisma.enrollment.create({
+      data: {
+        userId: session.user.id,
+        courseId: courseId,
+      },
+    });
+
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      select: { slug: true }
+    });
+
+    revalidatePath("/");
+    if (course) {
+      revalidatePath(`/courses/${course.slug}`);
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to enroll in course:", error);
+    return { success: false, error: "Failed to enroll in course" };
+  }
+}
+
+export async function unenrollFromCourse(courseId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Unauthorized");
+
+  try {
+    await prisma.enrollment.delete({
+      where: {
+        userId_courseId: {
+          userId: session.user.id,
+          courseId: courseId,
+        },
+      },
+    });
+
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      select: { slug: true }
+    });
+
+    revalidatePath("/");
+    if (course) {
+      revalidatePath(`/courses/${course.slug}`);
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to unenroll from course:", error);
+    return { success: false, error: "Failed to unenroll from course" };
+  }
+}

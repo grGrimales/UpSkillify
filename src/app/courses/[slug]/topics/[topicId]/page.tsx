@@ -112,6 +112,17 @@ async function getTopicData(topicId: string, lang: Language, userId?: string) {
       })
     : null;
 
+  const enrollment = userId
+    ? await prisma.enrollment.findUnique({
+        where: {
+          userId_courseId: {
+            userId,
+            courseId: topic.module.courseId,
+          },
+        },
+      })
+    : null;
+
   return { 
     topic: {
       ...topic,
@@ -127,6 +138,7 @@ async function getTopicData(topicId: string, lang: Language, userId?: string) {
       }
     }, 
     isCompleted: !!progress,
+    isEnrolled: !!enrollment,
     nextTopicId: nextTopic?.id || null,
     prevTopicId: prevTopic?.id || null
   };
@@ -149,7 +161,7 @@ export default async function TopicPage({
     notFound();
   }
 
-  const { topic, isCompleted, nextTopicId, prevTopicId } = data;
+  const { topic, isCompleted, isEnrolled, nextTopicId, prevTopicId } = data;
 
   return (
     <FocusAwareContent>
@@ -218,12 +230,21 @@ export default async function TopicPage({
           </div>
           
           {session ? (
-            <CompleteButton 
-              topicId={topic.id} 
-              initialCompleted={isCompleted} 
-              courseSlug={slug}
-              nextTopicId={nextTopicId}
-            />
+            isEnrolled ? (
+              <CompleteButton 
+                topicId={topic.id} 
+                initialCompleted={isCompleted} 
+                courseSlug={slug}
+                nextTopicId={nextTopicId}
+              />
+            ) : (
+              <Link 
+                href={`/courses/${slug}`}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors"
+              >
+                {lang === "ES" ? "Inscríbete para guardar progreso" : "Enroll to Track Progress"}
+              </Link>
+            )
           ) : (
             <Link 
               href="/auth/login" 

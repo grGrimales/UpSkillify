@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { cookies } from "next/headers";
 import { Language } from "@prisma/client";
 import ModuleAccordion from "./ModuleAccordion";
+import EnrollmentButton from "@/components/courses/EnrollmentButton";
 
 async function getCourseData(slug: string, lang: Language, userId?: string) {
   const course = await prisma.course.findUnique({
@@ -14,6 +15,9 @@ async function getCourseData(slug: string, lang: Language, userId?: string) {
       translations: {
         where: { language: lang }
       },
+      enrollments: userId ? {
+        where: { userId }
+      } : false,
       modules: {
         orderBy: { order: "asc" },
         include: {
@@ -54,9 +58,12 @@ async function getCourseData(slug: string, lang: Language, userId?: string) {
 
   if (!course) return null;
 
+  const isEnrolled = course.enrollments && course.enrollments.length > 0;
+
   // Flatten translations for easier UI usage
   return {
     ...course,
+    isEnrolled,
     title: course.translations[0]?.title || "Untranslated",
     description: course.translations[0]?.description || "",
     modules: course.modules.map(module => ({
@@ -95,6 +102,8 @@ export default async function CourseDetailPage({
   if (!course) {
     notFound();
   }
+
+  const isEnrolled = course.isEnrolled;
 
   // Calculate overall progress
   const allTopics = course.modules.flatMap(m => m.topics);
@@ -135,9 +144,19 @@ export default async function CourseDetailPage({
             <p className="text-xl text-zinc-600 dark:text-zinc-400 max-w-2xl">
               {course.description}
             </p>
+            
+            {session && (
+              <div className="mt-8">
+                <EnrollmentButton 
+                  courseId={course.id} 
+                  isEnrolled={isEnrolled} 
+                  lang={lang} 
+                />
+              </div>
+            )}
           </div>
           
-          {session && allTopics.length > 0 && (
+          {session && isEnrolled && allTopics.length > 0 && (
             <div className="w-full md:w-64 bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-bold">{lang === "ES" ? "Tu Progreso" : "Your Progress"}</span>
@@ -171,6 +190,7 @@ export default async function CourseDetailPage({
               slug={slug}
               lang={lang}
               isLoggedIn={!!session}
+              isEnrolled={isEnrolled}
               defaultOpen={module.id === currentModuleId}
             />
           ))

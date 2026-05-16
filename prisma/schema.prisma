@@ -7,20 +7,19 @@ datasource db {
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -33,30 +32,21 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-enum Role {
-  USER
-  ADMIN
-}
-
-enum Language {
-  EN
-  ES
-}
-
 model User {
-  id            String    @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String?
-  email         String?   @unique
+  email         String?        @unique
   emailVerified DateTime?
   image         String?
   password      String?
-  role          Role      @default(USER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  role          Role           @default(USER)
   accounts      Account[]
+  enrollments   Enrollment[]
+  attempts      ExamAttempt[]
   sessions      Session[]
   progress      UserProgress[]
-  attempts      ExamAttempt[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
 }
 
 model Course {
@@ -64,19 +54,31 @@ model Course {
   slug         String              @unique
   image        String?
   published    Boolean             @default(false)
-  translations CourseTranslation[]
-  modules      Module[]
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
+  translations CourseTranslation[]
+  enrollments  Enrollment[]
+  modules      Module[]
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  createdAt DateTime @default(now())
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
 }
 
 model CourseTranslation {
   id          String   @id @default(cuid())
   courseId    String
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   language    Language
   title       String
   description String?
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([courseId, language])
 }
@@ -85,22 +87,22 @@ model Module {
   id           String              @id @default(cuid())
   order        Int
   courseId     String
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  challenges   Challenge[]
+  exams        Exam[]
   course       Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
   translations ModuleTranslation[]
   topics       Topic[]
-  challenges   Challenge[]
-  exams        Exam[]
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
 }
 
 model ModuleTranslation {
   id          String   @id @default(cuid())
-  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   moduleId    String
   language    Language
   title       String
   description String?
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
   @@unique([moduleId, language])
 }
@@ -109,21 +111,21 @@ model Topic {
   id           String             @id @default(cuid())
   order        Int
   moduleId     String
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
   module       Module             @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   translations TopicTranslation[]
   userProgress UserProgress[]
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
 }
 
 model TopicTranslation {
   id       String   @id @default(cuid())
   topicId  String
-  topic    Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
   language Language
   title    String
-  content  String   @db.Text
+  content  String
   videoUrl String?
+  topic    Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
   @@unique([topicId, language])
 }
@@ -132,20 +134,20 @@ model Challenge {
   id           String                 @id @default(cuid())
   order        Int
   moduleId     String
-  module       Module                 @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  translations ChallengeTranslation[]
   createdAt    DateTime               @default(now())
   updatedAt    DateTime               @updatedAt
+  module       Module                 @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  translations ChallengeTranslation[]
 }
 
 model ChallengeTranslation {
   id          String    @id @default(cuid())
   challengeId String
-  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
   language    Language
   title       String
-  description String    @db.Text
-  content     String    @db.Text
+  description String
+  content     String
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
 
   @@unique([challengeId, language])
 }
@@ -154,21 +156,21 @@ model Exam {
   id           String            @id @default(cuid())
   order        Int
   moduleId     String
-  module       Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  translations ExamTranslation[]
-  questions    Question[]
-  attempts     ExamAttempt[]
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
+  module       Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  attempts     ExamAttempt[]
+  translations ExamTranslation[]
+  questions    Question[]
 }
 
 model ExamTranslation {
   id          String   @id @default(cuid())
   examId      String
-  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
   language    Language
   title       String
   description String?
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
 
   @@unique([examId, language])
 }
@@ -176,47 +178,47 @@ model ExamTranslation {
 model Question {
   id           String                @id @default(cuid())
   examId       String
+  answers      ExamAnswer[]
   exam         Exam                  @relation(fields: [examId], references: [id], onDelete: Cascade)
   translations QuestionTranslation[]
-  answers      ExamAnswer[]
 }
 
 model QuestionTranslation {
   id            String   @id @default(cuid())
   questionId    String
-  question      Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
   language      Language
-  text          String   @db.Text
-  options       Json     // Stores an array of options
-  explanation   String?  @db.Text
-  correctOption Int      // Index of the correct option
+  text          String
+  options       Json
+  explanation   String?
+  correctOption Int
+  question      Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([questionId, language])
 }
 
 model ExamAttempt {
-  id          String       @id @default(cuid())
-  userId      String
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  examId      String
-  exam        Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
-  score       Int?         // Final score percentage
-  isFinished  Boolean      @default(false)
-  answers     ExamAnswer[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id         String       @id @default(cuid())
+  userId     String
+  examId     String
+  score      Int?
+  isFinished Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  answers    ExamAnswer[]
+  exam       Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, examId, isFinished]) // Only one active attempt per exam
+  @@unique([userId, examId, isFinished])
 }
 
 model ExamAnswer {
   id             String      @id @default(cuid())
   attemptId      String
-  attempt        ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
   questionId     String
-  question       Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
   selectedOption Int
   isCorrect      Boolean
+  attempt        ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question       Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([attemptId, questionId])
 }
@@ -224,11 +226,11 @@ model ExamAnswer {
 model UserProgress {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   topicId   String
-  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
   completed Boolean  @default(true)
   createdAt DateTime @default(now())
+  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, topicId])
 }
@@ -239,4 +241,14 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Language {
+  EN
+  ES
 }

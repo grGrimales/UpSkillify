@@ -31,12 +31,14 @@ export default function ModuleAccordion({
   slug,
   lang,
   isLoggedIn,
+  isEnrolled,
   defaultOpen = false,
 }: {
   module: ModuleData;
   slug: string;
   lang: string;
   isLoggedIn: boolean;
+  isEnrolled: boolean;
   defaultOpen?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -84,7 +86,7 @@ export default function ModuleAccordion({
             </div>
 
             <div className="flex items-center gap-4 shrink-0">
-              {isLoggedIn && module.topics.length > 0 && (
+              {isLoggedIn && isEnrolled && module.topics.length > 0 && (
                 <div className="flex items-center gap-3 min-w-[120px]">
                   <div className="flex-1 bg-zinc-100 dark:bg-zinc-800 rounded-full h-1.5 overflow-hidden">
                     <div

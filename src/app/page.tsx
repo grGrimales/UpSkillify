@@ -16,6 +16,9 @@ async function getCourses(lang: Language, userId?: string) {
       _count: {
         select: { modules: true },
       },
+      enrollments: userId ? {
+        where: { userId }
+      } : false,
       modules: {
         select: {
           topics: {
@@ -35,15 +38,13 @@ async function getCourses(lang: Language, userId?: string) {
 
   const processedCourses = courses.map(course => {
     const topicsWithProgress = course.modules.flatMap(m => m.topics);
-    const topicIds = topicsWithProgress.map(t => t.id);
     
     // Find the latest progress date for this course
     let latestActivity = new Date(0);
-    let isEnrolled = false;
+    const isEnrolled = course.enrollments && course.enrollments.length > 0;
 
     topicsWithProgress.forEach(topic => {
       if (topic.userProgress && topic.userProgress.length > 0) {
-        isEnrolled = true;
         const progressDate = new Date(topic.userProgress[0].createdAt);
         if (progressDate > latestActivity) {
           latestActivity = progressDate;

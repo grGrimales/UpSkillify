@@ -43,6 +43,7 @@ export default function ModuleAccordion({
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [showDescription, setShowDescription] = useState(false);
 
   const completedCount = module.topics.filter(
     (t) => t.userProgress && t.userProgress.length > 0
@@ -67,16 +68,36 @@ export default function ModuleAccordion({
     <>
       <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
         <div className="flex items-stretch">
-          <button
+          <div
+            role="button"
+            tabIndex={0}
             onClick={() => setIsOpen(!isOpen)}
-            className={`flex-1 p-6 flex flex-col md:flex-row justify-between md:items-center gap-4 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50 ${isOpen ? "border-b border-zinc-100 dark:border-zinc-800" : ""}`}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setIsOpen(!isOpen)}
+            className={`flex-1 p-6 flex flex-col md:flex-row justify-between md:items-center gap-4 text-left cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50 ${isOpen ? "border-b border-zinc-100 dark:border-zinc-800" : ""}`}
           >
             <div className="flex-1 min-w-0">
               <h3 className="text-xl font-bold">
                 {module.order}. {module.title}
               </h3>
               {module.description && (
-                <p className="text-zinc-500 text-sm mt-1">{module.description}</p>
+                <div className="mt-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDescription(!showDescription);
+                    }}
+                    className="text-[10px] font-bold text-blue-600 uppercase tracking-tight hover:underline flex items-center gap-1"
+                  >
+                    {showDescription 
+                      ? (lang === "ES" ? "Ocultar descripción" : "Hide description") 
+                      : (lang === "ES" ? "Ver descripción" : "View description")}
+                  </button>
+                  {showDescription && (
+                    <p className="text-zinc-500 text-sm mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                      {module.description}
+                    </p>
+                  )}
+                </div>
               )}
               {!isOpen && itemCount && (
                 <p className="text-zinc-400 dark:text-zinc-500 text-xs mt-1.5 font-medium">
@@ -115,7 +136,7 @@ export default function ModuleAccordion({
                 <polyline points="6 9 12 15 18 9" />
               </svg>
             </div>
-          </button>
+          </div>
 
           {module.topics.length > 0 && (
             <button

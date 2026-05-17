@@ -13,6 +13,13 @@ export async function POST(req: Request) {
   try {
     const { topicId, completed } = await req.json();
 
+    if (!topicId || typeof topicId !== "string") {
+      return NextResponse.json({ message: "Invalid topicId" }, { status: 400 });
+    }
+    if (typeof completed !== "boolean") {
+      return NextResponse.json({ message: "Invalid completed value" }, { status: 400 });
+    }
+
     if (completed) {
       await prisma.userProgress.upsert({
         where: {

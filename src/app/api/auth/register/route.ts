@@ -4,7 +4,6 @@ import prisma from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
-    console.log("DATABASE_URL check:", process.env.DATABASE_URL ? "Exists" : "Missing");
     const { name, email, password } = await req.json();
 
     if (!email || !password) {

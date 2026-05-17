@@ -1,7 +1,6 @@
 "use client";
 
 import { useFocusMode } from "@/context/FocusModeContext";
-import { useEffect } from "react";
 
 export default function FocusModeToggle({ lang }: { lang: string }) {
   const { isFocusMode, toggleFocusMode } = useFocusMode();

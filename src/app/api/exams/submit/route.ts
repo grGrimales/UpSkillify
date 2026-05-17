@@ -13,6 +13,13 @@ export async function POST(req: Request) {
   try {
     const { examId, questionId, selectedOption, isCorrect, isFinished, score } = await req.json();
 
+    if (!examId || typeof examId !== "string") {
+      return NextResponse.json({ message: "Invalid examId" }, { status: 400 });
+    }
+    if (isFinished && (typeof score !== "number" || score < 0)) {
+      return NextResponse.json({ message: "Invalid score" }, { status: 400 });
+    }
+
     // 1. Get or Create an active attempt (isFinished: false)
     let attempt = await prisma.examAttempt.findUnique({
       where: {

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 type Language = "EN" | "ES";
 
@@ -13,6 +14,7 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>("ES");
+  const router = useRouter();
 
   useEffect(() => {
     // Read from cookie first, then localStorage
@@ -35,7 +37,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     document.cookie = `language=${lang}; path=/; max-age=31536000`; // 1 year
     
     // Refresh the page to trigger server-side re-fetch with new language
-    window.location.reload();
+    router.refresh();
   };
 
   return (
